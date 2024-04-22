@@ -1,7 +1,0 @@
-{
-	"name": "Kotlin",
-	"version": "0.0.1",
-	"authors": ["evrsen"],
-	"description": "Syntax highlighting for Kotlin.",
-	"repository": "https://github.com/evrsen/zed-kotlin"
-}

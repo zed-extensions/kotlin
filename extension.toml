@@ -1,0 +1,11 @@
+id = "kotlin"
+name = "Kotlin"
+version = "0.0.2"
+schema_version = 1
+authors = ["evrsen"]
+description = "Syntax highlighting for Kotlin."
+repository = "https://github.com/evrsen/zed-kotlin"
+
+[grammars.kotlin]
+repository = "https://github.com/fwcd/tree-sitter-kotlin"
+commit = "4e909d6cc9ac96b4eaecb3fb538eaca48e9e9ee9"
