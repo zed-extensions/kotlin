@@ -1,10 +1,14 @@
 id = "kotlin"
 name = "Kotlin"
-version = "0.0.2"
+version = "0.0.3"
 schema_version = 1
-authors = ["evrsen"]
-description = "Syntax highlighting for Kotlin."
-repository = "https://github.com/evrsen/zed-kotlin"
+authors = ["evrsen", "cholwell"]
+description = "Kotlin language support."
+repository = "https://github.com/zed-extensions/zed-kotlin"
+
+[language_servers.kotlin]
+name = "Kotlin Language Server"
+language = "Kotlin"
 
 [grammars.kotlin]
 repository = "https://github.com/fwcd/tree-sitter-kotlin"
