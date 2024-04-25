@@ -263,6 +263,16 @@
 ]@keyword
 
 [
+	"if"
+    "else"
+    "when"
+    "for"
+    "while"
+    "do"
+    "try"
+    "catch"
+    "throw"
+    "finally"
 	"val"
 	"var"
 	"enum"
@@ -275,26 +285,6 @@
 ("fun") @keyword.function
 
 (jump_expression) @keyword.return
-
-[
-	"if"
-	"else"
-	"when"
-] @conditional
-
-[
-	"for"
-	"do"
-	"while"
-] @repeat
-
-[
-	"try"
-	"catch"
-	"throw"
-	"finally"
-] @exception
-
 
 (annotation
 	"@" @attribute (use_site_target)? @attribute)
