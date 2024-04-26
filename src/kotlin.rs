@@ -33,7 +33,7 @@ impl KotlinExtension {
             .ok_or_else(|| "no asset found")?;
 
         let version_dir = format!("kotlin-language-server-{}", release.version);
-        let binary_path = format!("{version_dir}/bin/kotlin-language-server");
+        let binary_path = format!("{version_dir}/server/bin/kotlin-language-server");
 
         if !fs::metadata(&binary_path).map_or(false, |stat| stat.is_file()) {
             zed::set_language_server_installation_status(
