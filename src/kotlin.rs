@@ -46,9 +46,7 @@ impl KotlinExtension {
                 &version_dir,
                 zed::DownloadedFileType::Zip,
             )
-            .map_err(|e| {
-                format!("failed to download file | error: {e} | asset: {asset:?} | version_dir: {version_dir} | binary_path: {binary_path}")
-            })?;
+            .map_err(|e| format!("failed to download file error: {e}"))?;
         }
 
         self.cached_binary_path = Some(binary_path.clone());
