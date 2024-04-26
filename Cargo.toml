@@ -1,12 +1,12 @@
 [package]
 name = "zed-kotlin"
-version = "0.0.3"
+version = "0.0.2"
 edition = "2021"
 publish = false
 license = "MIT"
 
 [lib]
-path="src/kotlin.rs"
+path = "src/kotlin.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
