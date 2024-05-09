@@ -1,6 +1,6 @@
 name = "Kotlin"
 grammar = "kotlin"
-path_suffixes = ["kt", "kts"]
+path_suffixes = ["kt"]
 line_comments = ["// "]
 brackets = [
     { start = "(", end = ")", close = true, newline = false },
