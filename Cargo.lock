@@ -304,13 +304,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "zed-kotlin"
-version = "0.0.2"
-dependencies = [
- "zed_extension_api",
-]
-
-[[package]]
 name = "zed_extension_api"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -319,4 +312,11 @@ dependencies = [
  "serde",
  "serde_json",
  "wit-bindgen",
+]
+
+[[package]]
+name = "zed_kotlin"
+version = "0.0.2"
+dependencies = [
+ "zed_extension_api",
 ]

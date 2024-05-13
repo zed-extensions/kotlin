@@ -1,5 +1,5 @@
 [package]
-name = "zed-kotlin"
+name = "zed_kotlin"
 version = "0.0.2"
 edition = "2021"
 publish = false
