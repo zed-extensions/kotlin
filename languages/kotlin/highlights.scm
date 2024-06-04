@@ -10,13 +10,13 @@
 
 ; `it` keyword inside lambdas
 ; FIXME: This will highlight the keyword outside of lambdas since tree-sitter
-;		does not allow us to check for arbitrary nestation
+;        does not allow us to check for arbitrary nestation
 ((simple_identifier) @variable.builtin
 (#eq? @variable.builtin "it"))
 
 ; `field` keyword inside property getter/setter
 ; FIXME: This will highlight the keyword outside of getters and setters
-;	since tree-sitter does not allow us to check for arbitrary nestation
+;        since tree-sitter does not allow us to check for arbitrary nestation
 ((simple_identifier) @variable.builtin
 (#eq? @variable.builtin "field"))
 
@@ -91,7 +91,7 @@
 
 
 ; TODO: Seperate labeled returns/breaks/continue/super/this
-;		Must be implemented in the parser first
+;       Must be implemented in the parser first
 (label) @label
 
 ;;; Function definitions
@@ -216,7 +216,7 @@
 (character_escape_seq) @string.escape
 
 ; There are 3 ways to define a regex
-;	- "[abc]?".toRegex()
+; - "[abc]?".toRegex()
 (call_expression
   (navigation_expression
     ((string_literal) @string.regex)
@@ -224,7 +224,7 @@
       ((simple_identifier) @_function
       (#eq? @_function "toRegex")))))
 
-;	- Regex("[abc]?")
+; - Regex("[abc]?")
 (call_expression
   ((simple_identifier) @_function
   (#eq? @_function "Regex"))
@@ -233,7 +233,7 @@
       (value_argument
         (string_literal) @string.regex))))
 
-;	- Regex.fromLiteral("[abc]?")
+; - Regex.fromLiteral("[abc]?")
 (call_expression
   (navigation_expression
     ((simple_identifier) @_class
@@ -279,7 +279,7 @@
   "class"
   "object"
   "interface"
-;	"typeof" ; NOTE: It is reserved for future use
+; "typeof" ; NOTE: It is reserved for future use
 ] @keyword
 
 ("fun") @keyword.function
