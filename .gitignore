@@ -1,4 +1,3 @@
-.DS_Store
-kotlin.wasm
-test.kt
+target
+*.wasm
 grammars
