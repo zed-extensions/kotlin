@@ -279,6 +279,9 @@
   "class"
   "object"
   "interface"
+  "companion"
+  "package"
+  "import"
 ; "typeof" ; NOTE: It is reserved for future use
 ] @keyword
 
