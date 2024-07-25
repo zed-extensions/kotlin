@@ -82,7 +82,7 @@ impl zed::Extension for KotlinExtension {
         &mut self,
         _language_server_id: &LanguageServerId,
         worktree: &zed_extension_api::Worktree,
-    ) -> Result<Option<zed_extension_api::serde_json::Value>> {
+    ) -> Result<Option<serde_json::Value>> {
         let settings = LspSettings::for_worktree("kotlin-language-server", worktree)
             .ok()
             .and_then(|lsp_settings| lsp_settings.settings.clone())
