@@ -1,6 +1,7 @@
 use std::fs;
+use zed::serde_json;
 use zed::LanguageServerId;
-use zed_extension_api::{self as zed, Result};
+use zed_extension_api::{self as zed, settings::LspSettings, Result};
 
 struct KotlinExtension {
     cached_binary_path: Option<String>,
@@ -82,6 +83,21 @@ impl zed::Extension for KotlinExtension {
             args: vec![],
             env: Default::default(),
         })
+    }
+
+    fn language_server_workspace_configuration(
+        &mut self,
+        _language_server_id: &LanguageServerId,
+        worktree: &zed_extension_api::Worktree,
+    ) -> Result<Option<serde_json::Value>> {
+        let settings = LspSettings::for_worktree("kotlin-language-server", worktree)
+            .ok()
+            .and_then(|lsp_settings| lsp_settings.settings.clone())
+            .unwrap_or_default();
+
+        Ok(Some(serde_json::json!({
+            "kotlin": settings
+        })))
     }
 }
 
