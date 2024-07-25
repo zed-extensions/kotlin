@@ -36,8 +36,15 @@ impl KotlinExtension {
             .find(|asset| asset.name == asset_name)
             .ok_or_else(|| "no asset found")?;
 
+        let (os, _arch) = zed::current_platform();
         let version_dir = format!("kotlin-language-server-{}", release.version);
-        let binary_path = format!("{version_dir}/server/bin/kotlin-language-server");
+        let binary_path = format!(
+            "{version_dir}/server/bin/kotlin-language-server{extension}",
+            extension = match os {
+                zed::Os::Mac | zed::Os::Linux => "",
+                zed::Os::Windows => ".bat",
+            }
+        );
 
         if !fs::metadata(&binary_path).map_or(false, |stat| stat.is_file()) {
             zed::set_language_server_installation_status(
