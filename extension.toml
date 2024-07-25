@@ -6,7 +6,7 @@ authors = ["evrsen", "cholwell"]
 description = "Kotlin language support."
 repository = "https://github.com/zed-extensions/kotlin"
 
-[language_servers.kotlin]
+[language_servers.kotlin-language-server]
 name = "Kotlin Language Server"
 language = "Kotlin"
 
