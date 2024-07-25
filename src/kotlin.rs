@@ -89,7 +89,7 @@ impl zed::Extension for KotlinExtension {
             .unwrap_or_default();
 
         Ok(Some(serde_json::json!({
-                "kotlin":settings
+            "kotlin": settings
         })))
     }
 }
