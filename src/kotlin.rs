@@ -59,6 +59,9 @@ impl KotlinExtension {
                 zed::DownloadedFileType::Zip,
             )
             .map_err(|e| format!("failed to download file error: {e}"))?;
+
+            zed::make_file_executable(&binary_path)
+                .map_err(|e| format!("failed to make binary executable: {e}"))?;
         }
 
         self.cached_binary_path = Some(binary_path.clone());
