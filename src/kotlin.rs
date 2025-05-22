@@ -22,7 +22,16 @@ impl KotlinExtension {
             }
         }
 
-        let binary_path = kotlin_language_server::language_server_binary_path(language_server_id)?;
+        let binary_path = match language_server_id.as_ref() {
+            kotlin_lsp::LANGUAGE_SERVER_ID => kotlin_lsp::language_server_binary_path(),
+            kotlin_language_server::LANGUAGE_SERVER_ID => {
+                kotlin_language_server::language_server_binary_path(language_server_id)
+            }
+            _ => Err(format!(
+                "Unrecognized language server for Kotlin: {}",
+                language_server_id
+            )),
+        }?;
 
         self.cached_binary_path = Some(binary_path.clone());
         Ok(binary_path)
@@ -41,17 +50,22 @@ impl zed::Extension for KotlinExtension {
         language_server_id: &LanguageServerId,
         _: &zed::Worktree,
     ) -> zed::Result<zed::Command> {
-        match language_server_id.as_ref() {
-            kotlin_language_server::LANGUAGE_SERVER_ID => Ok(zed::Command {
-                command: self.language_server_binary_path(language_server_id)?,
-                args: vec![],
-                env: Default::default(),
-            }),
-            _ => Err(format!(
-                "Unsupported language server ID: {}",
-                language_server_id
-            )),
-        }
+        let binary_path = self.language_server_binary_path(language_server_id)?;
+        let args = match language_server_id.as_ref() {
+            kotlin_language_server::LANGUAGE_SERVER_ID => vec![],
+            kotlin_lsp::LANGUAGE_SERVER_ID => vec!["--stdio".to_string()],
+            _ => {
+                return Err(format!(
+                    "Unsupported language server ID: {}",
+                    language_server_id
+                ))
+            }
+        };
+        Ok(zed::Command {
+            command: binary_path,
+            args,
+            env: Default::default(),
+        })
     }
 
     fn language_server_workspace_configuration(
@@ -59,18 +73,12 @@ impl zed::Extension for KotlinExtension {
         language_server_id: &LanguageServerId,
         worktree: &zed_extension_api::Worktree,
     ) -> Result<Option<serde_json::Value>> {
-        if language_server_id.as_ref() != kotlin_language_server::LANGUAGE_SERVER_ID {
-            return Err(format!(
-                "Unsupported language server ID: {}",
-                language_server_id
-            ));
-        }
-
         let settings = LspSettings::for_worktree(language_server_id.as_ref(), worktree)
             .ok()
             .and_then(|lsp_settings| lsp_settings.settings.clone())
             .unwrap_or_default();
 
+        // todo! test with kotlin-lsp, is "kotlin" key required?
         Ok(Some(serde_json::json!({
             "kotlin": settings
         })))
