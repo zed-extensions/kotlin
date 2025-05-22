@@ -10,6 +10,10 @@ repository = "https://github.com/zed-extensions/kotlin"
 name = "Kotlin Language Server"
 language = "Kotlin"
 
+[language_servers.kotlin-lsp]
+name = "Kotlin LSP"
+language = "Kotlin"
+
 [grammars.kotlin]
 repository = "https://github.com/fwcd/tree-sitter-kotlin"
 commit = "4e909d6cc9ac96b4eaecb3fb538eaca48e9e9ee9"
