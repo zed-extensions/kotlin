@@ -78,10 +78,25 @@ impl zed::Extension for KotlinExtension {
             .and_then(|lsp_settings| lsp_settings.settings.clone())
             .unwrap_or_default();
 
-        // todo! test with kotlin-lsp, is "kotlin" key required?
-        Ok(Some(serde_json::json!({
-            "kotlin": settings
-        })))
+        // Different configuration structure for different language servers
+        match language_server_id.as_ref() {
+            kotlin_lsp::LANGUAGE_SERVER_ID => {
+                // Kotlin LSP expects a simpler configuration structure
+                Ok(Some(settings))
+            }
+            kotlin_language_server::LANGUAGE_SERVER_ID => {
+                // Kotlin Language Server expects settings wrapped in "kotlin" key
+                Ok(Some(serde_json::json!({
+                    "kotlin": settings
+                })))
+            }
+            _ => {
+                // Default fallback
+                Ok(Some(serde_json::json!({
+                    "kotlin": settings
+                })))
+            }
+        }
     }
 }
 

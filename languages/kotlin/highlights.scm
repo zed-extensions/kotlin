@@ -139,6 +139,7 @@
     (navigation_suffix
       (simple_identifier) @function) . ))
 
+; Standard library functions and Kotlin builtins
 (call_expression
   . (simple_identifier) @function.builtin
   (#any-of? @function.builtin
@@ -168,6 +169,8 @@
     "mutableListOf"
     "print"
     "println"
+    "readln"
+    "readlnOrNull"
     "error"
     "TODO"
     "run"
@@ -183,8 +186,14 @@
     "require"
     "requireNotNull"
     "with"
+    "apply"
+    "also"
+    "let"
+    "takeIf"
+    "takeUnless"
     "suspend"
     "synchronized"
+    "use"
 ))
 
 ;;; Literals

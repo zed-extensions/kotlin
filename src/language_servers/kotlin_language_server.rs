@@ -9,20 +9,27 @@ pub fn language_server_binary_path(language_server_id: &zed::LanguageServerId) -
         language_server_id,
         &zed::LanguageServerInstallationStatus::CheckingForUpdate,
     );
-    let release = zed::latest_github_release(
+    
+    let release = match zed::latest_github_release(
         "fwcd/kotlin-language-server",
         zed::GithubReleaseOptions {
             require_assets: true,
             pre_release: false,
         },
-    )?;
+    ) {
+        Ok(release) => release,
+        Err(e) => {
+            eprintln!("Failed to fetch latest release information: {}", e);
+            return Err(format!("Failed to get release information: {}. This might be due to network issues or API rate limits.", e));
+        }
+    };
 
     let asset_name = "server.zip";
     let asset = release
         .assets
         .iter()
         .find(|asset| asset.name == asset_name)
-        .ok_or_else(|| "no asset found")?;
+        .ok_or_else(|| format!("Required asset '{}' not found in release {}", asset_name, release.version))?;
 
     let (os, _arch) = zed::current_platform();
     let version_dir = format!("kotlin-language-server-{}", release.version);
@@ -36,20 +43,34 @@ pub fn language_server_binary_path(language_server_id: &zed::LanguageServerId) -
 
     if !fs::metadata(&binary_path).map_or(false, |stat| stat.is_file()) {
         zed::set_language_server_installation_status(
-            &language_server_id,
+            language_server_id,
             &zed::LanguageServerInstallationStatus::Downloading,
         );
 
-        zed::download_file(
+        if let Err(e) = zed::download_file(
             &asset.download_url,
             &version_dir,
             zed::DownloadedFileType::Zip,
-        )
-        .map_err(|e| format!("failed to download file error: {e}"))?;
+        ) {
+            eprintln!("Failed to download kotlin-language-server: {}", e);
+            return Err(format!("Failed to download kotlin-language-server: {}. This might be due to network issues.", e));
+        }
 
-        zed::make_file_executable(&binary_path)
-            .map_err(|e| format!("failed to make binary executable: {e}"))?;
+        if let Err(e) = zed::make_file_executable(&binary_path) {
+            eprintln!("Failed to make binary executable: {}", e);
+            return Err(format!("Failed to make kotlin-language-server executable: {}", e));
+        }
     }
 
-    return Ok(binary_path);
+    // Final verification that the binary exists
+    if !fs::metadata(&binary_path).map_or(false, |stat| stat.is_file()) {
+        return Err(format!("kotlin-language-server binary not found at expected location: {}", binary_path));
+    }
+
+    zed::set_language_server_installation_status(
+        language_server_id,
+        &zed::LanguageServerInstallationStatus::None,
+    );
+
+    Ok(binary_path)
 }
