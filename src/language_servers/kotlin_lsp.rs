@@ -21,7 +21,7 @@ fn get_version() -> Result<String> {
         url,
         headers: vec![],
         body: None,
-        redirect_policy: zed::http_client::RedirectPolicy::Follow { max_redirects: 5 },
+        redirect_policy: zed::http_client::RedirectPolicy::NoFollow,
     });
     
     let result = match result {
