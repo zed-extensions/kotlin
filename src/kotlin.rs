@@ -1,50 +1,21 @@
-use std::collections::HashMap;
-use std::fs;
 use zed::serde_json;
 use zed::LanguageServerId;
 use zed_extension_api::{self as zed, settings::LspSettings, Result};
 
 mod language_servers;
 
-use language_servers::{kotlin_language_server, kotlin_lsp};
+use language_servers::{KotlinLSP, KotlinLanguageServer};
 
 struct KotlinExtension {
-    cached_binary_paths: HashMap<String, String>,
-}
-
-impl KotlinExtension {
-    fn language_server_binary_path(
-        &mut self,
-        language_server_id: &LanguageServerId,
-    ) -> Result<String> {
-        let server_id_key = language_server_id.to_string();
-        if let Some(path) = self.cached_binary_paths.get(&server_id_key) {
-            if fs::metadata(path).map_or(false, |stat| stat.is_file()) {
-                return Ok(path.clone());
-            }
-        }
-
-        let binary_path = match language_server_id.as_ref() {
-            kotlin_lsp::LANGUAGE_SERVER_ID => kotlin_lsp::language_server_binary_path(),
-            kotlin_language_server::LANGUAGE_SERVER_ID => {
-                kotlin_language_server::language_server_binary_path(language_server_id)
-            }
-            _ => Err(format!(
-                "Unrecognized language server for Kotlin: {}",
-                language_server_id
-            )),
-        }?;
-
-        self.cached_binary_paths
-            .insert(server_id_key, binary_path.clone());
-        Ok(binary_path)
-    }
+    kotlin_language_server: Option<KotlinLanguageServer>,
+    kotlin_lsp: Option<KotlinLSP>,
 }
 
 impl zed::Extension for KotlinExtension {
     fn new() -> Self {
         Self {
-            cached_binary_paths: HashMap::new(),
+            kotlin_language_server: None,
+            kotlin_lsp: None,
         }
     }
 
@@ -53,22 +24,33 @@ impl zed::Extension for KotlinExtension {
         language_server_id: &LanguageServerId,
         _: &zed::Worktree,
     ) -> zed::Result<zed::Command> {
-        let binary_path = self.language_server_binary_path(language_server_id)?;
-        let args = match language_server_id.as_ref() {
-            kotlin_language_server::LANGUAGE_SERVER_ID => vec![],
-            kotlin_lsp::LANGUAGE_SERVER_ID => vec!["--stdio".to_string()],
-            _ => {
-                return Err(format!(
-                    "Unsupported language server ID: {}",
-                    language_server_id
-                ))
+        match language_server_id.as_ref() {
+            KotlinLanguageServer::LANGUAGE_SERVER_ID => {
+                let kotlin_language_server = self
+                    .kotlin_language_server
+                    .get_or_insert_with(KotlinLanguageServer::new);
+
+                let binary_path =
+                    kotlin_language_server.language_server_binary_path(language_server_id)?;
+                Ok(zed::Command {
+                    command: binary_path,
+                    args: vec![],
+                    env: Default::default(),
+                })
             }
-        };
-        Ok(zed::Command {
-            command: binary_path,
-            args,
-            env: Default::default(),
-        })
+            KotlinLSP::LANGUAGE_SERVER_ID => {
+                let kotlin_lsp = self.kotlin_lsp.get_or_insert_with(KotlinLSP::new);
+                let binary_path = kotlin_lsp.language_server_binary_path(language_server_id)?;
+                Ok(zed::Command {
+                    command: binary_path,
+                    args: vec!["--stdio".to_string()],
+                    env: Default::default(),
+                })
+            }
+            _ => Err(format!(
+                "Unrecognized language server for Kotlin: {language_server_id}"
+            )),
+        }
     }
 
     fn language_server_workspace_configuration(
