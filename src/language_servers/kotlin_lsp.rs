@@ -2,7 +2,44 @@ use std::path::Path;
 
 use zed_extension_api::{self as zed, make_file_executable, Result};
 
-pub const LANGUAGE_SERVER_ID: &'static str = "kotlin-lsp";
+pub struct KotlinLSP {
+    cached_binary_path: Option<String>,
+}
+
+impl KotlinLSP {
+    pub const LANGUAGE_SERVER_ID: &'static str = "kotlin-lsp";
+
+    pub fn new() -> Self {
+        KotlinLSP {
+            cached_binary_path: None,
+        }
+    }
+
+    pub fn language_server_binary_path(
+        &mut self,
+        language_server_id: &zed::LanguageServerId,
+    ) -> Result<String> {
+        if let Some(path) = self.cached_binary_path.as_ref() {
+            return Ok(path.clone());
+        }
+
+        zed::set_language_server_installation_status(
+            language_server_id,
+            &zed::LanguageServerInstallationStatus::CheckingForUpdate,
+        );
+        let version = get_version()?;
+
+        zed::set_language_server_installation_status(
+            language_server_id,
+            &zed::LanguageServerInstallationStatus::Downloading,
+        );
+
+        let binary_path = download_from_teamcity(version)?;
+
+        self.cached_binary_path = Some(binary_path.clone());
+        Ok(binary_path)
+    }
+}
 
 fn extract_version_from_markdown(contents: &str) -> Option<String> {
     contents
@@ -42,9 +79,4 @@ fn download_from_teamcity(version: String) -> Result<String> {
         make_file_executable(&script_path)?;
     }
     Ok(script_path)
-}
-
-pub fn language_server_binary_path() -> Result<String> {
-    let version = get_version()?;
-    download_from_teamcity(version)
 }
