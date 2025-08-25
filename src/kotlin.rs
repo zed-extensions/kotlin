@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs;
 use zed::serde_json;
 use zed::LanguageServerId;
@@ -8,7 +9,7 @@ mod language_servers;
 use language_servers::{kotlin_language_server, kotlin_lsp};
 
 struct KotlinExtension {
-    cached_binary_path: Option<String>,
+    cached_binary_paths: HashMap<String, String>,
 }
 
 impl KotlinExtension {
@@ -16,7 +17,8 @@ impl KotlinExtension {
         &mut self,
         language_server_id: &LanguageServerId,
     ) -> Result<String> {
-        if let Some(path) = &self.cached_binary_path {
+        let server_id_key = language_server_id.to_string();
+        if let Some(path) = self.cached_binary_paths.get(&server_id_key) {
             if fs::metadata(path).map_or(false, |stat| stat.is_file()) {
                 return Ok(path.clone());
             }
@@ -33,7 +35,8 @@ impl KotlinExtension {
             )),
         }?;
 
-        self.cached_binary_path = Some(binary_path.clone());
+        self.cached_binary_paths
+            .insert(server_id_key, binary_path.clone());
         Ok(binary_path)
     }
 }
@@ -41,7 +44,7 @@ impl KotlinExtension {
 impl zed::Extension for KotlinExtension {
     fn new() -> Self {
         Self {
-            cached_binary_path: None,
+            cached_binary_paths: HashMap::new(),
         }
     }
 
