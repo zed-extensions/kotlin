@@ -46,7 +46,7 @@ To use Kotlin LSP instead of the Kotlin Language Server, you must explicity enab
 ```json
 {
   "languages": {
-    "kotlin": {
+    "Kotlin": {
       "language_servers": ["kotlin-lsp"]
     }
   }
