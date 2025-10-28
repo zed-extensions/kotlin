@@ -69,7 +69,14 @@ fn download_from_teamcity(version: String) -> Result<String> {
     let url =
         format!("https://download-cdn.jetbrains.com/kotlin-lsp/{version}/kotlin-{version}.zip");
     let target_dir = format!("kotlin-lsp-{version}");
-    let script_path = format!("{target_dir}/kotlin-lsp.sh");
+    let (os, _arch) = zed_extension_api::current_platform();
+    let script_path = format!(
+        "{target_dir}/kotlin-lsp.{extension}",
+        extension = match os {
+            zed::Os::Mac | zed::Os::Linux => "sh",
+            zed::Os::Windows => "cmd",
+        }
+    );
     if !Path::new(&target_dir).exists() {
         zed::download_file(
             &url,
