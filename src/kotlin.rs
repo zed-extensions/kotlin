@@ -22,7 +22,7 @@ impl zed::Extension for KotlinExtension {
     fn language_server_command(
         &mut self,
         language_server_id: &LanguageServerId,
-        _: &zed::Worktree,
+        worktree: &zed::Worktree,
     ) -> zed::Result<zed::Command> {
         match language_server_id.as_ref() {
             KotlinLanguageServer::LANGUAGE_SERVER_ID => {
@@ -40,7 +40,7 @@ impl zed::Extension for KotlinExtension {
             }
             KotlinLSP::LANGUAGE_SERVER_ID => {
                 let kotlin_lsp = self.kotlin_lsp.get_or_insert_with(KotlinLSP::new);
-                let binary_path = kotlin_lsp.language_server_binary_path(language_server_id)?;
+                let binary_path = kotlin_lsp.language_server_binary_path(language_server_id, worktree)?;
                 Ok(zed::Command {
                     command: binary_path,
                     args: vec!["--stdio".to_string()],

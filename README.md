@@ -69,3 +69,17 @@ It will be downloaded and updated automatically when enabled, however, you can u
 ```
 
 Note that the `kotlin-lsp.sh` script expects to be run from within the unzipped release zip file, and should not be moved elsewhere.
+
+Alternatively, you can specify a custom download URL for the Kotlin LSP zip archive:
+
+```json
+{
+  "lsp": {
+    "kotlin-lsp": {
+      "settings": {
+        "download_url": "https://example.com/path/to/kotlin-lsp.zip"
+      }
+    }
+  }
+}
+```
