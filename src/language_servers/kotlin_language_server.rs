@@ -42,7 +42,7 @@ impl KotlinLanguageServer {
             .assets
             .iter()
             .find(|asset| asset.name == asset_name)
-            .ok_or_else(|| "no asset found")?;
+            .ok_or("no asset found")?;
 
         let (os, _arch) = zed::current_platform();
         let version_dir = format!("kotlin-language-server-{}", release.version);
@@ -54,9 +54,9 @@ impl KotlinLanguageServer {
             }
         );
 
-        if !fs::metadata(&binary_path).map_or(false, |stat| stat.is_file()) {
+        if !fs::metadata(&binary_path).is_ok_and(|stat| stat.is_file()) {
             zed::set_language_server_installation_status(
-                &language_server_id,
+                language_server_id,
                 &zed::LanguageServerInstallationStatus::Downloading,
             );
 
