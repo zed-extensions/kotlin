@@ -66,10 +66,23 @@ fn get_version() -> Result<String> {
 }
 
 fn download_from_teamcity(version: String) -> Result<String> {
+    let (os, arch) = zed_extension_api::current_platform();
+    let platform = match os {
+        zed::Os::Mac => "mac",
+        zed::Os::Linux => "linux",
+        zed::Os::Windows => "win",
+    };
+    let arch = match arch {
+        zed::Architecture::Aarch64 => "aarch64",
+        zed::Architecture::X8664 => "x64",
+        _ => {
+            return Err("Platform X86 is not supported by the Kotlin language server.".to_string())
+        }
+    };
+
     let url =
-        format!("https://download-cdn.jetbrains.com/kotlin-lsp/{version}/kotlin-{version}.zip");
+        format!("https://download-cdn.jetbrains.com/kotlin-lsp/{version}/kotlin-lsp-{version}-{platform}-{arch}.zip");
     let target_dir = format!("kotlin-lsp-{version}");
-    let (os, _arch) = zed_extension_api::current_platform();
     let script_path = format!(
         "{target_dir}/kotlin-lsp.{extension}",
         extension = match os {
