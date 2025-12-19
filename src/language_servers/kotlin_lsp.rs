@@ -97,6 +97,26 @@ fn download_from_teamcity(version: String) -> Result<String> {
             zed_extension_api::DownloadedFileType::Zip,
         )?;
         make_file_executable(&script_path)?;
+        // See https://github.com/zed-extensions/kotlin/issues/65
+        if matches!(os, zed::Os::Linux) {
+            fix_file_perms_recursive(&format!("{target_dir}/jre"))?;
+            fix_file_perms_recursive(&format!("{target_dir}/lib"))?;
+            fix_file_perms_recursive(&format!("{target_dir}/native"))?;
+        }
     }
     Ok(script_path)
+}
+
+fn fix_file_perms_recursive(dir: &str) -> Result<()> {
+    for entry in std::fs::read_dir(dir).map_err(|e| format!("IO error: {e}"))? {
+        let entry = entry.map_err(|e| format!("IO error: {e}"))?;
+        let path = entry.path();
+
+        if path.is_file() {
+            make_file_executable(path.to_string_lossy().as_ref())?;
+        } else {
+            fix_file_perms_recursive(path.to_string_lossy().as_ref())?;
+        }
+    }
+    Ok(())
 }
