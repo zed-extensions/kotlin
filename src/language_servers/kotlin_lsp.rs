@@ -97,13 +97,13 @@ fn download_from_teamcity(version: String) -> Result<String> {
             zed_extension_api::DownloadedFileType::Zip,
         )?;
         make_file_executable(&script_path)?;
-        // See https://github.com/zed-extensions/kotlin/issues/65
-        if matches!(os, zed::Os::Linux) {
-            fix_file_perms_recursive(&format!("{target_dir}/jre"))?;
-            fix_file_perms_recursive(&format!("{target_dir}/lib"))?;
-            fix_file_perms_recursive(&format!("{target_dir}/native"))?;
-        }
     }
+
+    // See https://github.com/zed-extensions/kotlin/issues/65
+    fix_file_perms_recursive(&format!("{target_dir}/jre"))?;
+    fix_file_perms_recursive(&format!("{target_dir}/lib"))?;
+    fix_file_perms_recursive(&format!("{target_dir}/native"))?;
+
     Ok(script_path)
 }
 
