@@ -1,6 +1,6 @@
 id = "kotlin"
 name = "Kotlin"
-version = "0.1.7"
+version = "0.2.0"
 schema_version = 1
 authors = ["evrsen", "cholwell"]
 description = "Kotlin language support."
