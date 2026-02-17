@@ -1,0 +1,42 @@
+[
+  {
+    "label": "test $ZED_CUSTOM_kotlin_class_name.$ZED_CUSTOM_kotlin_method_name",
+    "command": "outer=\"${ZED_CUSTOM_kotlin_outer_class_name:}\"; method=$(printf '%s' \"$KOTLIN_METHOD\" | tr -d '`'); sep='$'; if [ -n \"$outer\" ]; then c=\"$outer${sep}$KOTLIN_CLS\"; else c=\"$KOTLIN_CLS\"; fi; if [ -f gradlew ]; then first=$(printf '%s' \"$ZED_RELATIVE_FILE\" | cut -d/ -f1); if [ \"$first\" != \"src\" ] && [ -f \"$first/build.gradle.kts\" -o -f \"$first/build.gradle\" ]; then ./gradlew \":$first:test\" --tests \"$KOTLIN_PKG.$c.$method\"; else ./gradlew test --tests \"$KOTLIN_PKG.$c.$method\"; fi; elif [ -f pom.xml ]; then mvncmd=\"mvn\"; [ -f mvnw ] && mvncmd=\"./mvnw\"; $mvncmd test -Dtest=\"$c#$method\"; else >&2 echo 'No build system found'; exit 1; fi;",
+    "tags": ["kotlin-test", "kotlin-test-nested"],
+    "use_new_terminal": false,
+    "reveal": "always",
+    "env": {
+      "KOTLIN_PKG": "$ZED_CUSTOM_kotlin_package_name",
+      "KOTLIN_CLS": "$ZED_CUSTOM_kotlin_class_name",
+      "KOTLIN_METHOD": "$ZED_CUSTOM_kotlin_method_name"
+    },
+    "shell": { "with_arguments": { "program": "/bin/sh", "args": ["-c"] } }
+  },
+  {
+    "label": "test $ZED_CUSTOM_kotlin_class_name",
+    "command": "outer=\"${ZED_CUSTOM_kotlin_outer_class_name:}\"; sep='$'; if [ -n \"$outer\" ]; then c=\"$outer${sep}$KOTLIN_CLS\"; else c=\"$KOTLIN_CLS\"; fi; if [ -f gradlew ]; then first=$(printf '%s' \"$ZED_RELATIVE_FILE\" | cut -d/ -f1); if [ \"$first\" != \"src\" ] && [ -f \"$first/build.gradle.kts\" -o -f \"$first/build.gradle\" ]; then ./gradlew \":$first:test\" --tests \"$KOTLIN_PKG.$c\"; else ./gradlew test --tests \"$KOTLIN_PKG.$c\"; fi; elif [ -f pom.xml ]; then mvncmd=\"mvn\"; [ -f mvnw ] && mvncmd=\"./mvnw\"; $mvncmd test -Dtest=\"$c\"; else >&2 echo 'No build system found'; exit 1; fi;",
+    "tags": ["kotlin-test-class", "kotlin-test-class-nested"],
+    "use_new_terminal": false,
+    "reveal": "always",
+    "env": {
+      "KOTLIN_PKG": "$ZED_CUSTOM_kotlin_package_name",
+      "KOTLIN_CLS": "$ZED_CUSTOM_kotlin_class_name"
+    },
+    "shell": { "with_arguments": { "program": "/bin/sh", "args": ["-c"] } }
+  },
+  {
+    "label": "run main",
+    "command": "if [ -f gradlew ]; then ./gradlew run; elif [ -f pom.xml ]; then mvncmd=\"mvn\"; [ -f mvnw ] && mvncmd=\"./mvnw\"; $mvncmd compile exec:java; elif command -v kotlin >/dev/null; then kotlin \"$ZED_FILE\"; else >&2 echo 'No Kotlin runtime found'; exit 1; fi;",
+    "tags": ["kotlin-main"],
+    "use_new_terminal": false,
+    "reveal": "always",
+    "shell": { "with_arguments": { "program": "/bin/sh", "args": ["-c"] } }
+  },
+  {
+    "label": "run all tests",
+    "command": "if [ -f gradlew ]; then ./gradlew test; elif [ -f pom.xml ]; then mvncmd=\"mvn\"; [ -f mvnw ] && mvncmd=\"./mvnw\"; $mvncmd test; else >&2 echo 'No build system found'; exit 1; fi;",
+    "use_new_terminal": false,
+    "reveal": "always",
+    "shell": { "with_arguments": { "program": "/bin/sh", "args": ["-c"] } }
+  }
+]
