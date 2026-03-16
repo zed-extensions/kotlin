@@ -26,7 +26,7 @@
   },
   {
     "label": "run main",
-    "command": "if [ -f gradlew ]; then ./gradlew run; elif [ -f pom.xml ]; then mvncmd=\"mvn\"; [ -f mvnw ] && mvncmd=\"./mvnw\"; $mvncmd compile exec:java; elif command -v kotlin >/dev/null; then kotlin \"$ZED_FILE\"; else >&2 echo 'No Kotlin runtime found'; exit 1; fi;",
+    "command": "if [ -f gradlew ]; then first=$(printf '%s' \"$ZED_RELATIVE_FILE\" | cut -d/ -f1); if [ \"$first\" != \"src\" ] && [ -f \"$first/build.gradle.kts\" -o -f \"$first/build.gradle\" ]; then ./gradlew \":$first:run\" --console=plain; else ./gradlew run --console=plain; fi; elif [ -f pom.xml ]; then mvncmd=\"mvn\"; [ -f mvnw ] && mvncmd=\"./mvnw\"; $mvncmd compile exec:java; elif command -v kotlin >/dev/null; then kotlin \"$ZED_FILE\"; else >&2 echo 'No Kotlin runtime found'; exit 1; fi;",
     "tags": ["kotlin-main"],
     "use_new_terminal": false,
     "reveal": "always",
