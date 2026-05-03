@@ -50,6 +50,9 @@ fn extract_version_from_markdown(contents: &str) -> Option<String> {
 
 /// Return URL to the kotlin-lsp package on TeamCity servers
 fn get_version() -> Result<String> {
+    // hardcoded version with the previous release layout
+    return Ok("262.2310.0".to_string());
+
     let url = "https://raw.githubusercontent.com/Kotlin/kotlin-lsp/refs/heads/main/RELEASES.md"
         .to_string();
     let result = zed::http_client::fetch(&zed::http_client::HttpRequest {
