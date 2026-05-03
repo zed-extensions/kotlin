@@ -72,7 +72,7 @@ fn download_from_teamcity(version: String) -> Result<String> {
         zed::Os::Linux => "linux",
         zed::Os::Windows => "win",
     };
-    let arch = match arch {
+    let arch_str = match arch {
         zed::Architecture::Aarch64 => "aarch64",
         zed::Architecture::X8664 => "x64",
         _ => {
@@ -80,9 +80,39 @@ fn download_from_teamcity(version: String) -> Result<String> {
         }
     };
 
-    let url =
-        format!("https://download-cdn.jetbrains.com/kotlin-lsp/{version}/kotlin-lsp-{version}-{platform}-{arch}.zip");
-    let target_dir = format!("kotlin-lsp-{version}");
+    let compression = match os {
+        zed::Os::Mac => "sit",
+        zed::Os::Linux => "tar.gz",
+        zed::Os::Windows => "zip"
+    };
+    
+    // WIN https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0.win.zip
+    // WIN ARM  https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0-win-aarch64.zip
+    // LINUX https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0.tar.gz
+    // LINUX ARM https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0-aarch64.tar.gz
+    // MAC https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0.sit
+    // MAC ARM https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0-aarch64.sit
+
+
+    let url = match os {
+        zed::Os::Windows => match arch {
+            zed::Architecture::X8664 => format!("https://download-cdn.jetbrains.com/kotlin-lsp/{version}/kotlin-server-{version}.{platform}.{compression}"),
+            zed::Architecture::Aarch64 => format!("https://download-cdn.jetbrains.com/kotlin-lsp/{version}/kotlin-server-{version}-{platform}-{arch_str}.{compression}"),
+            _ => {
+                return Err("Platform X86 is not supported by the Kotlin language server.".to_string())
+            }
+        },
+        zed::Os::Mac | zed::Os::Linux => match arch {
+            zed::Architecture::X8664 => format!("https://download-cdn.jetbrains.com/kotlin-lsp/{version}/kotlin-server-{version}.{compression}"),
+            zed::Architecture::Aarch64 => format!("https://download-cdn.jetbrains.com/kotlin-lsp/{version}/kotlin-server-{version}-{arch_str}.{compression}"),
+            _ => {
+                return Err("Platform X86 is not supported by the Kotlin language server.".to_string())
+            }
+        }
+    };
+
+    // Fix for local development, don't know why but the extraction creates a new folder
+    let target_dir = format!("kotlin-lsp-{version}/kotlin-server-{version}");
     let script_path = format!(
         "{target_dir}/kotlin-lsp.{extension}",
         extension = match os {
@@ -91,13 +121,19 @@ fn download_from_teamcity(version: String) -> Result<String> {
         }
     );
     if !Path::new(&target_dir).exists() {
+        let downloaded_file_type = match os {
+            zed::Os::Windows => zed_extension_api::DownloadedFileType::Zip,
+            // Mac users will probably receive an error when trying to extract.
+            // Unable to know if theres a fix for this mac .sit format
+            zed::Os::Linux | zed::Os::Mac => zed_extension_api::DownloadedFileType::GzipTar
+        };
+        
         zed::download_file(
             &url,
             &target_dir,
-            zed_extension_api::DownloadedFileType::Zip,
+            downloaded_file_type,
         )?;
         make_file_executable(&script_path)?;
-    }
-
+    }    
     Ok(script_path)
 }
