@@ -115,6 +115,13 @@ fn download_from_teamcity(version: String) -> Result<String> {
             zed_extension_api::DownloadedFileType::Zip,
         )
         .map_err(|e| format!("failed to download kotlin-lsp: {e}"))?;
+
+        if !fs::metadata(&script_path).is_ok_and(|stat| stat.is_file()) {
+            return Err(format!(
+                "failed to locate kotlin-lsp launcher after extraction: {script_path}"
+            ));
+        }
+
         make_file_executable(&script_path)
             .map_err(|e| format!("failed to make kotlin-lsp script executable: {e}"))?;
     }
