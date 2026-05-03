@@ -1,6 +1,10 @@
-use std::path::Path;
+use std::fs;
 
 use zed_extension_api::{self as zed, make_file_executable, Result};
+
+// this version is known to be working,
+// so we use it as a fallback if installation of the latest version fails
+const FALLBACK_VERSION: &str = "262.2310.0";
 
 pub struct KotlinLSP {
     cached_binary_path: Option<String>,
@@ -23,29 +27,43 @@ impl KotlinLSP {
             return Ok(path.clone());
         }
 
-        zed::set_language_server_installation_status(
-            language_server_id,
-            &zed::LanguageServerInstallationStatus::CheckingForUpdate,
-        );
-        let version = get_version()?;
-
-        zed::set_language_server_installation_status(
-            language_server_id,
-            &zed::LanguageServerInstallationStatus::Downloading,
-        );
-
-        let binary_path = download_from_teamcity(version)?;
+        let binary_path = match try_download_latest(language_server_id) {
+            Ok(path) => path,
+            Err(original_err) => {
+                zed::set_language_server_installation_status(
+                    language_server_id,
+                    &zed::LanguageServerInstallationStatus::Downloading,
+                );
+                match download_from_teamcity(FALLBACK_VERSION.to_string()) {
+                    Ok(path) => path,
+                    Err(_) => return Err(original_err),
+                }
+            }
+        };
 
         self.cached_binary_path = Some(binary_path.clone());
         Ok(binary_path)
     }
 }
 
+fn try_download_latest(language_server_id: &zed::LanguageServerId) -> Result<String> {
+    zed::set_language_server_installation_status(
+        language_server_id,
+        &zed::LanguageServerInstallationStatus::CheckingForUpdate,
+    );
+    let version = get_version()?;
+    zed::set_language_server_installation_status(
+        language_server_id,
+        &zed::LanguageServerInstallationStatus::Downloading,
+    );
+    download_from_teamcity(version)
+}
+
 fn extract_version_from_markdown(contents: &str) -> Option<String> {
     contents
         .lines()
         .find_map(|line| line.strip_prefix("### v"))
-        .map(|version| version.to_string())
+        .map(|version| version.trim().to_string())
 }
 
 /// Return URL to the kotlin-lsp package on TeamCity servers
@@ -90,13 +108,15 @@ fn download_from_teamcity(version: String) -> Result<String> {
             zed::Os::Windows => "cmd",
         }
     );
-    if !Path::new(&target_dir).exists() {
+    if !fs::metadata(&script_path).is_ok_and(|stat| stat.is_file()) {
         zed::download_file(
             &url,
             &target_dir,
             zed_extension_api::DownloadedFileType::Zip,
-        )?;
-        make_file_executable(&script_path)?;
+        )
+        .map_err(|e| format!("failed to download kotlin-lsp: {e}"))?;
+        make_file_executable(&script_path)
+            .map_err(|e| format!("failed to make kotlin-lsp script executable: {e}"))?;
     }
 
     Ok(script_path)
