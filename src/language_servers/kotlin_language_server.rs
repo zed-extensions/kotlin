@@ -2,6 +2,8 @@ use std::fs;
 
 use zed_extension_api::{self as zed, Result};
 
+use crate::language_servers::util;
+
 pub struct KotlinLanguageServer {
     cached_binary_path: Option<String>,
 }
@@ -45,7 +47,11 @@ impl KotlinLanguageServer {
             .ok_or("no asset found")?;
 
         let (os, _arch) = zed::current_platform();
-        let version_dir = format!("kotlin-language-server-{}", release.version);
+        let version_dir = format!(
+            "{id}-{version}",
+            id = Self::LANGUAGE_SERVER_ID,
+            version = release.version
+        );
         let binary_path = format!(
             "{version_dir}/server/bin/kotlin-language-server{extension}",
             extension = match os {
@@ -72,6 +78,8 @@ impl KotlinLanguageServer {
         }
 
         self.cached_binary_path = Some(binary_path.clone());
+        util::remove_outdated_versions(Self::LANGUAGE_SERVER_ID, &version_dir)?;
+
         Ok(binary_path)
     }
 }
