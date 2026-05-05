@@ -2,6 +2,8 @@ use std::fs;
 
 use zed_extension_api::{self as zed, make_file_executable, Result};
 
+use crate::language_servers::util;
+
 pub struct KotlinLSP {
     cached_binary_path: Option<String>,
 }
@@ -111,6 +113,8 @@ fn download_from_teamcity(version: String) -> Result<String> {
 
         zed::download_file(&url, &target_dir, downloaded_file_type)?;
         make_file_executable(&script_path)?;
+        util::remove_outdated_versions(KotlinLSP::LANGUAGE_SERVER_ID, &target_dir)?;
     }
+
     Ok(script_path)
 }
