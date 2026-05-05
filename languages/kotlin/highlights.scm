@@ -61,9 +61,7 @@
 (label) @label
 
 ; Function definitions
-(function_declaration
-  .
-  (simple_identifier) @function)
+(function_declaration (simple_identifier) @function)
 
 (getter
   "get" @function.builtin)
@@ -97,19 +95,15 @@
 
 ; Function calls
 ; function()
-(call_expression
-  .
-  (simple_identifier) @function)
+(call_expression (simple_identifier) @function)
 
 ; object.function() or object.property.function()
 (call_expression
   (navigation_expression
     (navigation_suffix
-      (simple_identifier) @function) .))
+      (simple_identifier) @function))
 
-(call_expression
-  .
-  (simple_identifier) @function.builtin
+(call_expression (simple_identifier) @function.builtin
   (#any-of? @function.builtin
     "arrayOf" "arrayOfNulls" "byteArrayOf" "shortArrayOf" "intArrayOf" "longArrayOf" "ubyteArrayOf"
     "ushortArrayOf" "uintArrayOf" "ulongArrayOf" "floatArrayOf" "doubleArrayOf" "booleanArrayOf"
