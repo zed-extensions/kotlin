@@ -91,22 +91,25 @@ fn download_from_teamcity(version: String) -> Result<String> {
 
     let url = format!("https://download-cdn.jetbrains.com/kotlin-lsp/{version}/{asset_name}");
 
-    let contents_dir = format!("kotlin-server-{version}");
+    let target_dir = format!(
+        "{server_id}-{version}",
+        server_id = KotlinLSP::LANGUAGE_SERVER_ID
+    );
     let script_path = format!(
-        "{contents_dir}/kotlin-lsp.{extension}",
+        "{target_dir}/kotlin-server-{version}/kotlin-lsp.{extension}",
         extension = match os {
             zed::Os::Mac | zed::Os::Linux => "sh",
             zed::Os::Windows => "cmd",
         }
     );
-    if !fs::metadata(&contents_dir).is_ok_and(|metadata| metadata.is_dir()) {
+    if !fs::metadata(&target_dir).is_ok_and(|metadata| metadata.is_dir()) {
         let downloaded_file_type = match os {
             // We don't ask questions as to why `sit` == `zip`. Let JetBrains keep their secrets there
             zed::Os::Windows | zed::Os::Mac => zed_extension_api::DownloadedFileType::Zip,
             zed::Os::Linux => zed_extension_api::DownloadedFileType::GzipTar,
         };
 
-        zed::download_file(&url, ".", downloaded_file_type)?;
+        zed::download_file(&url, &target_dir, downloaded_file_type)?;
         make_file_executable(&script_path)?;
     }
     Ok(script_path)
