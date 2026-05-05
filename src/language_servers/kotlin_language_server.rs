@@ -75,10 +75,11 @@ impl KotlinLanguageServer {
 
             zed::make_file_executable(&binary_path)
                 .map_err(|e| format!("failed to make binary executable: {e}"))?;
+
+            util::remove_outdated_versions(Self::LANGUAGE_SERVER_ID, &version_dir)?;
         }
 
         self.cached_binary_path = Some(binary_path.clone());
-        util::remove_outdated_versions(Self::LANGUAGE_SERVER_ID, &version_dir)?;
 
         Ok(binary_path)
     }
