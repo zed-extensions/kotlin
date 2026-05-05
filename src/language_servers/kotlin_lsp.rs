@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::fs;
 
 use zed_extension_api::{self as zed, make_file_executable, Result};
 
@@ -67,37 +67,50 @@ fn get_version() -> Result<String> {
 
 fn download_from_teamcity(version: String) -> Result<String> {
     let (os, arch) = zed_extension_api::current_platform();
-    let platform = match os {
-        zed::Os::Mac => "mac",
-        zed::Os::Linux => "linux",
-        zed::Os::Windows => "win",
-    };
-    let arch = match arch {
-        zed::Architecture::Aarch64 => "aarch64",
-        zed::Architecture::X8664 => "x64",
+
+    // WIN https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0.win.zip
+    // WIN ARM  https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0-win-aarch64.zip
+    // LINUX https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0.tar.gz
+    // LINUX ARM https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0-aarch64.tar.gz
+    // MAC https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0.sit
+    // MAC ARM https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0-aarch64.sit
+
+    let arch_suffix = match arch {
+        zed::Architecture::X8664 => "",
+        zed::Architecture::Aarch64 => "-aarch64",
         _ => {
             return Err("Platform X86 is not supported by the Kotlin language server.".to_string())
         }
     };
 
-    let url =
-        format!("https://download-cdn.jetbrains.com/kotlin-lsp/{version}/kotlin-lsp-{version}-{platform}-{arch}.zip");
-    let target_dir = format!("kotlin-lsp-{version}");
+    let asset_name = match os {
+        zed::Os::Windows => format!("kotlin-server-{version}{arch_suffix}.win.zip"),
+        zed::Os::Mac => format!("kotlin-server-{version}{arch_suffix}.sit"),
+        zed::Os::Linux => format!("kotlin-server-{version}{arch_suffix}.tar.gz"),
+    };
+
+    let url = format!("https://download-cdn.jetbrains.com/kotlin-lsp/{version}/{asset_name}");
+
+    let target_dir = format!(
+        "{server_id}-{version}",
+        server_id = KotlinLSP::LANGUAGE_SERVER_ID
+    );
     let script_path = format!(
-        "{target_dir}/kotlin-lsp.{extension}",
+        "{target_dir}/kotlin-server-{version}/kotlin-lsp.{extension}",
         extension = match os {
             zed::Os::Mac | zed::Os::Linux => "sh",
             zed::Os::Windows => "cmd",
         }
     );
-    if !Path::new(&target_dir).exists() {
-        zed::download_file(
-            &url,
-            &target_dir,
-            zed_extension_api::DownloadedFileType::Zip,
-        )?;
+    if !fs::metadata(&target_dir).is_ok_and(|metadata| metadata.is_dir()) {
+        let downloaded_file_type = match os {
+            // We don't ask questions as to why `sit` == `zip`. Let JetBrains keep their secrets there
+            zed::Os::Windows | zed::Os::Mac => zed_extension_api::DownloadedFileType::Zip,
+            zed::Os::Linux => zed_extension_api::DownloadedFileType::GzipTar,
+        };
+
+        zed::download_file(&url, &target_dir, downloaded_file_type)?;
         make_file_executable(&script_path)?;
     }
-
     Ok(script_path)
 }
