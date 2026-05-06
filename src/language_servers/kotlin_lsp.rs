@@ -97,7 +97,13 @@ fn download_from_teamcity(version: String) -> Result<String> {
         "{server_id}-{version}",
         server_id = KotlinLSP::LANGUAGE_SERVER_ID
     );
-    let binary_path = format!("{target_dir}/kotlin-server-{version}/bin/intellij-server");
+    let binary_path = format!(
+        "{target_dir}/kotlin-server-{version}/bin/intellij-server{exe_suffix}",
+        exe_suffix = match os {
+            zed::Os::Windows => ".exe",
+            _ => "",
+        }
+    );
 
     if !fs::metadata(&target_dir).is_ok_and(|metadata| metadata.is_dir()) {
         let downloaded_file_type = match os {
