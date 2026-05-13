@@ -93,28 +93,34 @@ fn download_from_teamcity(version: String) -> Result<String> {
 
     let url = format!("https://download-cdn.jetbrains.com/kotlin-lsp/{version}/{asset_name}");
 
-    let target_dir = format!(
+    let extension_dir = format!(
         "{server_id}-{version}",
         server_id = KotlinLSP::LANGUAGE_SERVER_ID
     );
+
+    let target_dir = match os {
+        zed::Os::Windows => extension_dir.clone(),
+        _ => format!("{extension_dir}/kotlin-server-{version}"),
+    };
+
     let binary_path = format!(
-        "{target_dir}/kotlin-server-{version}/bin/intellij-server{exe_suffix}",
+        "{target_dir}/bin/intellij-server{exe_suffix}",
         exe_suffix = match os {
             zed::Os::Windows => ".exe",
             _ => "",
         }
     );
 
-    if !fs::metadata(&target_dir).is_ok_and(|metadata| metadata.is_dir()) {
+    if !fs::metadata(&extension_dir).is_ok_and(|metadata| metadata.is_dir()) {
         let downloaded_file_type = match os {
             // We don't ask questions as to why `sit` == `zip`. Let JetBrains keep their secrets there
             zed::Os::Windows | zed::Os::Mac => zed_extension_api::DownloadedFileType::Zip,
             zed::Os::Linux => zed_extension_api::DownloadedFileType::GzipTar,
         };
 
-        zed::download_file(&url, &target_dir, downloaded_file_type)?;
+        zed::download_file(&url, &extension_dir, downloaded_file_type)?;
         make_file_executable(&binary_path)?;
-        util::remove_outdated_versions(KotlinLSP::LANGUAGE_SERVER_ID, &target_dir)?;
+        util::remove_outdated_versions(KotlinLSP::LANGUAGE_SERVER_ID, &extension_dir)?;
     }
 
     Ok(binary_path)
