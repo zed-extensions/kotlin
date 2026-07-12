@@ -1,13 +1,16 @@
 //! Resolve archive-internal URIs returned by kotlin-lsp into real, readable files.
 //!
 //! kotlin-lsp points navigation targets at sources that live *inside* an archive,
-//! e.g. `file:///home/u/.gradle/.../foo-sources.jar!/pkg/Foo.kt` or
-//! `file:///.../lib/src.zip!/java.base/java/time/Instant.java`. The `!/` segment is
-//! JetBrains' in-archive separator, so the path is not a real file on disk and Zed
-//! opens an empty buffer.
+//! e.g. `jar:///home/u/.gradle/.../foo-sources.jar!/pkg/Foo.kt` or
+//! `jar:///.../lib/src.zip!/java.base/java/time/Instant.java` — confirmed via live
+//! probing to use a `jar://` scheme (not `file://`, despite that being the convention
+//! used by e.g. the Zed Java extension for the equivalent `jdt://` case). The `!/`
+//! segment is JetBrains' in-archive separator, so the path is not a real file on disk
+//! and Zed opens an empty buffer.
 //!
-//! This module detects such URIs, extracts the entry from the `.jar`/`.zip` to a
-//! stable temp file, and rewrites the location to a plain `file://` URI Zed can open.
+//! This module detects such URIs regardless of scheme, extracts the entry from the
+//! `.jar`/`.zip` to a stable temp file, and rewrites the location to a plain `file://`
+//! URI Zed can open.
 
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -92,10 +95,15 @@ fn split_archive_uri(uri: &str) -> Option<(&str, &str)> {
     Some((archive, inner))
 }
 
-/// Turn a `file://` archive URI into a filesystem path.
+/// Turn an archive URI into a filesystem path. kotlin-lsp uses a `jar://` scheme for
+/// archive locations (confirmed via live probing — not `file://` as the JDK/Java
+/// extension convention would suggest), so the scheme is stripped generically rather
+/// than hardcoded to one prefix: `<scheme>:///abs/path` and `<scheme>://abs/path` both
+/// yield `/abs/path` here, same as the standard `file://` triple-slash convention.
 fn uri_to_path(archive_uri: &str) -> String {
     let stripped = archive_uri
-        .strip_prefix("file://")
+        .split_once("://")
+        .map(|(_, rest)| rest)
         .unwrap_or(archive_uri);
     let decoded = percent_decode(stripped);
 
@@ -194,6 +202,21 @@ mod tests {
     #[test]
     fn strips_file_scheme() {
         assert_eq!(uri_to_path("file:///opt/jdk/lib/src.zip"), "/opt/jdk/lib/src.zip");
+    }
+
+    #[test]
+    fn strips_jar_scheme() {
+        // kotlin-lsp's actual scheme for archive locations, confirmed via live probing.
+        assert_eq!(uri_to_path("jar:///opt/jdk/lib/src.zip"), "/opt/jdk/lib/src.zip");
+    }
+
+    #[test]
+    fn splits_jar_scheme_uri() {
+        let (archive, inner) =
+            split_archive_uri("jar:///opt/jdk/lib/src.zip!/java.base/java/time/Instant.java")
+                .unwrap();
+        assert_eq!(archive, "jar:///opt/jdk/lib/src.zip");
+        assert_eq!(inner, "java.base/java/time/Instant.java");
     }
 
     #[test]
