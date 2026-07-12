@@ -4,11 +4,12 @@ use zed_extension_api::{self as zed, settings::LspSettings, Result};
 
 mod language_servers;
 
-use language_servers::{KotlinLSP, KotlinLanguageServer};
+use language_servers::{KotlinLSP, KotlinLanguageServer, Proxy};
 
 struct KotlinExtension {
     kotlin_language_server: Option<KotlinLanguageServer>,
     kotlin_lsp: Option<KotlinLSP>,
+    proxy: Option<Proxy>,
 }
 
 impl zed::Extension for KotlinExtension {
@@ -16,6 +17,7 @@ impl zed::Extension for KotlinExtension {
         Self {
             kotlin_language_server: None,
             kotlin_lsp: None,
+            proxy: None,
         }
     }
 
@@ -41,11 +43,30 @@ impl zed::Extension for KotlinExtension {
             KotlinLSP::LANGUAGE_SERVER_ID => {
                 let kotlin_lsp = self.kotlin_lsp.get_or_insert_with(KotlinLSP::new);
                 let binary_path = kotlin_lsp.language_server_binary_path(language_server_id)?;
-                Ok(zed::Command {
-                    command: binary_path,
-                    args: vec!["--stdio".to_string()],
-                    env: Default::default(),
-                })
+
+                // Run kotlin-lsp behind kotlin-lsp-proxy, which rewrites archive-internal
+                // (`jar!/`, `zip!/`) source URIs into real files so Go-to-Definition into
+                // library/JDK sources works (zed-extensions/kotlin#106). If the proxy can't
+                // be obtained, fall back to launching kotlin-lsp directly so core language
+                // features keep working (only library source navigation is affected).
+                let proxy = self.proxy.get_or_insert_with(Proxy::new);
+                match proxy.language_server_binary_path(language_server_id) {
+                    Ok(proxy_path) => Ok(zed::Command {
+                        command: proxy_path,
+                        args: vec![binary_path, "--stdio".to_string()],
+                        env: Default::default(),
+                    }),
+                    Err(err) => {
+                        eprintln!(
+                            "kotlin-lsp-proxy unavailable ({err}); launching kotlin-lsp directly"
+                        );
+                        Ok(zed::Command {
+                            command: binary_path,
+                            args: vec!["--stdio".to_string()],
+                            env: Default::default(),
+                        })
+                    }
+                }
             }
             _ => Err(format!(
                 "Unrecognized language server for Kotlin: {language_server_id}"
