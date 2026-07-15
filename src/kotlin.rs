@@ -4,11 +4,12 @@ use zed_extension_api::{self as zed, settings::LspSettings, Result};
 
 mod language_servers;
 
-use language_servers::{KotlinLSP, KotlinLanguageServer};
+use language_servers::{KotlinLSP, KotlinLanguageServer, Proxy};
 
 struct KotlinExtension {
     kotlin_language_server: Option<KotlinLanguageServer>,
     kotlin_lsp: Option<KotlinLSP>,
+    proxy: Option<Proxy>,
 }
 
 impl zed::Extension for KotlinExtension {
@@ -16,13 +17,14 @@ impl zed::Extension for KotlinExtension {
         Self {
             kotlin_language_server: None,
             kotlin_lsp: None,
+            proxy: None,
         }
     }
 
     fn language_server_command(
         &mut self,
         language_server_id: &LanguageServerId,
-        _: &zed::Worktree,
+        worktree: &zed::Worktree,
     ) -> zed::Result<zed::Command> {
         match language_server_id.as_ref() {
             KotlinLanguageServer::LANGUAGE_SERVER_ID => {
@@ -41,11 +43,47 @@ impl zed::Extension for KotlinExtension {
             KotlinLSP::LANGUAGE_SERVER_ID => {
                 let kotlin_lsp = self.kotlin_lsp.get_or_insert_with(KotlinLSP::new);
                 let binary_path = kotlin_lsp.language_server_binary_path(language_server_id)?;
-                Ok(zed::Command {
-                    command: binary_path,
-                    args: vec!["--stdio".to_string()],
-                    env: Default::default(),
-                })
+
+                // Run kotlin-lsp behind kotlin-lsp-proxy, which rewrites archive-internal
+                // (`jar!/`, `zip!/`) source URIs into real files so Go-to-Definition into
+                // library/JDK sources works (zed-extensions/kotlin#106). If the proxy can't
+                // be obtained, fall back to launching kotlin-lsp directly so core language
+                // features keep working (only library source navigation is affected).
+                let configuration = LspSettings::for_worktree(language_server_id.as_ref(), worktree)
+                    .ok()
+                    .and_then(|lsp_settings| lsp_settings.settings);
+
+                let proxy = self.proxy.get_or_insert_with(Proxy::new);
+                match proxy.language_server_binary_path(language_server_id, &configuration, worktree) {
+                    Ok(proxy_path) => {
+                        // `binary_path` is relative to the extension's work directory.
+                        // Zed resolves a relative `command` against that directory
+                        // automatically, but does NOT resolve `args` — so it must be
+                        // made absolute here before being passed as an argument to the
+                        // proxy, otherwise the proxy inherits the *worktree's* cwd and
+                        // fails to find it.
+                        let absolute_binary_path = std::env::current_dir()
+                            .map(|dir| dir.join(&binary_path))
+                            .map(|path| path.to_string_lossy().into_owned())
+                            .unwrap_or(binary_path);
+
+                        Ok(zed::Command {
+                            command: proxy_path,
+                            args: vec![absolute_binary_path, "--stdio".to_string()],
+                            env: Default::default(),
+                        })
+                    }
+                    Err(err) => {
+                        eprintln!(
+                            "kotlin-lsp-proxy unavailable ({err}); launching kotlin-lsp directly"
+                        );
+                        Ok(zed::Command {
+                            command: binary_path,
+                            args: vec!["--stdio".to_string()],
+                            env: Default::default(),
+                        })
+                    }
+                }
             }
             _ => Err(format!(
                 "Unrecognized language server for Kotlin: {language_server_id}"

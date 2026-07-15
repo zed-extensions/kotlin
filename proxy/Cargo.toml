@@ -1,0 +1,35 @@
+# Standalone crate (its own workspace) so it doesn't get pulled into the
+# extension's wasm build.
+[workspace]
+
+[package]
+name = "kotlin-lsp-proxy"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "MIT"
+description = "Native LSP proxy for the Zed Kotlin extension: resolves library/JDK source URIs that live inside jar/zip archives so Go-to-Definition works."
+
+[[bin]]
+name = "kotlin-lsp-proxy"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_System_Threading",
+    "Win32_Foundation",
+    "Win32_System_Diagnostics_ToolHelp",
+] }
+
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
