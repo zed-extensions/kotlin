@@ -2,19 +2,21 @@
 
 Kotlin language support for [Zed](https://github.com/zed-industries/zed).
 
+## Features
+
+- **Syntax** via tree-sitter Kotlin
+- **Language servers**
+  - [fwcd/kotlin-language-server](https://github.com/fwcd/kotlin-language-server) (default)
+  - [Kotlin/kotlin-lsp](https://github.com/Kotlin/kotlin-lsp) (opt-in, pre-alpha)
+- **Library source navigation**: optional `kotlin-lsp-proxy` rewrites `jar://` /
+  `*.jar!` definition targets so Zed can open extracted sources (see
+  [docs/JAR_SOURCE_PROXY.md](./docs/JAR_SOURCE_PROXY.md))
+
 ## Language Servers
 
-### Kotlin Language Server
+### Kotlin Language Server (default)
 
-The [Kotlin Language Server](https://github.com/fwcd/kotlin-language-server) is an unofficial LSP for Kotlin, it is currently the most stable and popular language server for Kotlin. It is enabled by default by this extension.
-
-#### Configuration
-
-Workspace configuration options can be passed to the language server via lsp
-settings in `settings.json`.
-
-The following example changes the JVM target from `default` (which is 1.8) to
-`17`:
+Workspace settings go under `lsp.kotlin-language-server` in `settings.json`:
 
 ```json
 {
@@ -32,16 +34,10 @@ The following example changes the JVM target from `default` (which is 1.8) to
 }
 ```
 
-The full list of workspace configuration options can be found
-[here](https://github.com/fwcd/kotlin-language-server/blob/main/server/src/main/kotlin/org/javacs/kt/Configuration.kt).
+Full options:
+[Configuration.kt](https://github.com/fwcd/kotlin-language-server/blob/main/server/src/main/kotlin/org/javacs/kt/Configuration.kt).
 
-### Kotlin LSP
-
-[Kotlin LSP](https://github.com/kotlin/kotlin-lsp) is an official LSP implementation for Kotlin, built by JetBrains. It is currently pre-alpha.
-
-#### Configuration
-
-To use Kotlin LSP instead of the Kotlin Language Server, you must explicity enable it in your `settings.json`:
+### Kotlin LSP (JetBrains, pre-alpha)
 
 ```json
 {
@@ -53,7 +49,7 @@ To use Kotlin LSP instead of the Kotlin Language Server, you must explicity enab
 }
 ```
 
-It will be downloaded and updated automatically when enabled, however, you can use a manually installed version by setting the path to the `kotlin-lsp.sh` script in the release assets:
+Optional custom binary:
 
 ```json
 {
@@ -61,11 +57,35 @@ It will be downloaded and updated automatically when enabled, however, you can u
     "kotlin-lsp": {
       "binary": {
         "path": "path/to/kotlin-lsp.sh",
-        "arguments": [ "--stdio" ]
+        "arguments": ["--stdio"]
       }
     }
   }
 }
 ```
 
-Note that the `kotlin-lsp.sh` script expects to be run from within the unzipped release zip file, and should not be moved elsewhere.
+## Library sources (`jar://`)
+
+When the language server returns locations inside dependency source jars, Zed
+historically opened an empty tab. This extension can run a small proxy in front
+of the LS to extract those entries to disk first.
+
+- Auto-download: platform binaries from the extension release tag `v{version}`
+- Local build: `./setup-local-proxy.sh`
+- Disable: `KOTLIN_LSP_PROXY_DISABLE=1`
+- Debug log: `KOTLIN_LSP_PROXY_DEBUG=1` → `~/.cache/zed-kotlin-jar-sources/proxy.log`
+
+Details: [docs/JAR_SOURCE_PROXY.md](./docs/JAR_SOURCE_PROXY.md).
+
+## Developing this extension
+
+```bash
+# Install as a Zed dev extension (point at this repo)
+# Proxy for local jar-navigation testing:
+./setup-local-proxy.sh
+
+cd proxy && cargo test
+```
+
+After WASM changes: **extensions: rebuild dev extension** in Zed.  
+After proxy-only changes: re-run `./setup-local-proxy.sh` and restart the LS.

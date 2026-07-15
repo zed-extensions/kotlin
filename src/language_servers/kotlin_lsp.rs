@@ -31,12 +31,7 @@ impl KotlinLSP {
         );
         let version = get_version()?;
 
-        zed::set_language_server_installation_status(
-            language_server_id,
-            &zed::LanguageServerInstallationStatus::Downloading,
-        );
-
-        let binary_path = download_from_teamcity(version)?;
+        let binary_path = download_from_teamcity(language_server_id, version)?;
 
         self.cached_binary_path = Some(binary_path.clone());
         Ok(binary_path)
@@ -67,7 +62,10 @@ fn get_version() -> Result<String> {
         .ok_or_else(|| "Failed to extract version from RELEASES.md".into())
 }
 
-fn download_from_teamcity(version: String) -> Result<String> {
+fn download_from_teamcity(
+    language_server_id: &zed::LanguageServerId,
+    version: String,
+) -> Result<String> {
     let (os, arch) = zed_extension_api::current_platform();
 
     // WIN https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0.win.zip
@@ -111,6 +109,20 @@ fn download_from_teamcity(version: String) -> Result<String> {
         }
     );
 
+    // Already installed — do not flip the UI to "Downloading…" again.
+    if fs::metadata(&binary_path).is_ok_and(|m| m.is_file()) {
+        zed::set_language_server_installation_status(
+            language_server_id,
+            &zed::LanguageServerInstallationStatus::None,
+        );
+        return Ok(binary_path);
+    }
+
+    zed::set_language_server_installation_status(
+        language_server_id,
+        &zed::LanguageServerInstallationStatus::Downloading,
+    );
+
     if !fs::metadata(&extension_dir).is_ok_and(|metadata| metadata.is_dir()) {
         let downloaded_file_type = match os {
             // We don't ask questions as to why `sit` == `zip`. Let JetBrains keep their secrets there
@@ -122,6 +134,11 @@ fn download_from_teamcity(version: String) -> Result<String> {
         make_file_executable(&binary_path)?;
         util::remove_outdated_versions(KotlinLSP::LANGUAGE_SERVER_ID, &extension_dir)?;
     }
+
+    zed::set_language_server_installation_status(
+        language_server_id,
+        &zed::LanguageServerInstallationStatus::None,
+    );
 
     Ok(binary_path)
 }

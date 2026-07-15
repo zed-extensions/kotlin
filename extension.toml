@@ -1,9 +1,9 @@
 id = "kotlin"
 name = "Kotlin"
-version = "0.3.0"
+version = "0.4.0"
 schema_version = 1
 authors = ["evrsen", "cholwell"]
-description = "Kotlin language support."
+description = "Kotlin language support with optional jar/zip library source navigation."
 repository = "https://github.com/zed-extensions/kotlin"
 
 [language_servers.kotlin-language-server]

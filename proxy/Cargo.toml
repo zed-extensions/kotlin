@@ -1,0 +1,15 @@
+[package]
+name = "kotlin-lsp-proxy"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Local LSP proxy: materialize jar!/zip! definition targets so Zed can open them"
+
+[[bin]]
+name = "kotlin-lsp-proxy"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1"
+sha2 = "0.10"
+zip = { version = "2", default-features = false, features = ["deflate"] }

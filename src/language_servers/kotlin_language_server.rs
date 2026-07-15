@@ -60,7 +60,12 @@ impl KotlinLanguageServer {
             }
         );
 
-        if !fs::metadata(&binary_path).is_ok_and(|stat| stat.is_file()) {
+        if fs::metadata(&binary_path).is_ok_and(|stat| stat.is_file()) {
+            zed::set_language_server_installation_status(
+                language_server_id,
+                &zed::LanguageServerInstallationStatus::None,
+            );
+        } else {
             zed::set_language_server_installation_status(
                 language_server_id,
                 &zed::LanguageServerInstallationStatus::Downloading,
@@ -77,6 +82,11 @@ impl KotlinLanguageServer {
                 .map_err(|e| format!("failed to make binary executable: {e}"))?;
 
             util::remove_outdated_versions(Self::LANGUAGE_SERVER_ID, &version_dir)?;
+
+            zed::set_language_server_installation_status(
+                language_server_id,
+                &zed::LanguageServerInstallationStatus::None,
+            );
         }
 
         self.cached_binary_path = Some(binary_path.clone());
