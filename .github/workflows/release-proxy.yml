@@ -19,7 +19,7 @@ jobs:
             runner: macos-15
             asset: kotlin-lsp-proxy-darwin-aarch64.tar.gz
           - target: x86_64-apple-darwin
-            runner: macos-15
+            runner: macos-13
             asset: kotlin-lsp-proxy-darwin-x86_64.tar.gz
           - target: x86_64-unknown-linux-gnu
             runner: ubuntu-22.04
@@ -42,6 +42,11 @@ jobs:
 
       - name: Build proxy
         run: cargo build --release --target ${{ matrix.target }} --manifest-path proxy/Cargo.toml
+        shell: bash
+
+      - name: Test (host target only)
+        if: matrix.target == 'x86_64-unknown-linux-gnu' || matrix.target == 'aarch64-apple-darwin'
+        run: cargo test --manifest-path proxy/Cargo.toml
         shell: bash
 
       - name: Package (Unix)

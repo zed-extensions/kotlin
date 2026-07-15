@@ -9,14 +9,12 @@ Kotlin language support for [Zed](https://github.com/zed-industries/zed).
   - [fwcd/kotlin-language-server](https://github.com/fwcd/kotlin-language-server) (default)
   - [Kotlin/kotlin-lsp](https://github.com/Kotlin/kotlin-lsp) (opt-in, pre-alpha)
 - **Library source navigation**: optional `kotlin-lsp-proxy` rewrites `jar://` /
-  `*.jar!` definition targets so Zed can open extracted sources (see
-  [docs/JAR_SOURCE_PROXY.md](./docs/JAR_SOURCE_PROXY.md))
+  `*.jar!` definition targets so Zed can open extracted sources  
+  → [docs/JAR_SOURCE_PROXY.md](./docs/JAR_SOURCE_PROXY.md)
 
 ## Language Servers
 
 ### Kotlin Language Server (default)
-
-Workspace settings go under `lsp.kotlin-language-server` in `settings.json`:
 
 ```json
 {
@@ -49,43 +47,28 @@ Full options:
 }
 ```
 
-Optional custom binary:
-
-```json
-{
-  "lsp": {
-    "kotlin-lsp": {
-      "binary": {
-        "path": "path/to/kotlin-lsp.sh",
-        "arguments": ["--stdio"]
-      }
-    }
-  }
-}
-```
-
 ## Library sources (`jar://`)
 
 When the language server returns locations inside dependency source jars, Zed
-historically opened an empty tab. This extension can run a small proxy in front
-of the LS to extract those entries to disk first.
+may open an empty tab. This extension can run a small proxy in front of the LS
+to extract those entries first.
 
-- Auto-download: platform binaries from the extension release tag `v{version}`
-- Local build: `./setup-local-proxy.sh`
-- Disable: `KOTLIN_LSP_PROXY_DISABLE=1`
-- Debug log: `KOTLIN_LSP_PROXY_DEBUG=1` → `~/.cache/zed-kotlin-jar-sources/proxy.log`
+| | |
+|--|--|
+| Enable (default) | proxy binary present / auto-downloaded |
+| Disable | `"sourceProxy": { "enabled": false }` or `KOTLIN_LSP_PROXY_DISABLE=1` |
+| Debug | `"sourceProxy": { "debug": true }` or `KOTLIN_LSP_PROXY_DEBUG=1` |
+| Local build | `./setup-local-proxy.sh` |
 
-Details: [docs/JAR_SOURCE_PROXY.md](./docs/JAR_SOURCE_PROXY.md).
+Details and security notes: [docs/JAR_SOURCE_PROXY.md](./docs/JAR_SOURCE_PROXY.md),
+[SECURITY.md](./SECURITY.md).
 
-## Developing this extension
+## Developing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ```bash
-# Install as a Zed dev extension (point at this repo)
-# Proxy for local jar-navigation testing:
-./setup-local-proxy.sh
-
 cd proxy && cargo test
+./setup-local-proxy.sh
+# Zed: Install Dev Extension on this repo; rebuild after WASM changes
 ```
-
-After WASM changes: **extensions: rebuild dev extension** in Zed.  
-After proxy-only changes: re-run `./setup-local-proxy.sh` and restart the LS.

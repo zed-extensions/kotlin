@@ -1,12 +1,12 @@
-use zed::serde_json;
+use zed::serde_json::{self, Value};
 use zed::LanguageServerId;
 use zed_extension_api::{self as zed, settings::LspSettings, Result};
 
 mod language_servers;
 
 use language_servers::{
-    absolutize_in_work_dir, find_or_install_proxy, proxy_debug_enabled, proxy_disabled, KotlinLSP,
-    KotlinLanguageServer,
+    absolutize_in_work_dir, find_or_install_proxy, merge_proxy_settings, proxy_disabled,
+    KotlinLSP, KotlinLanguageServer, SourceProxySettings,
 };
 
 struct KotlinExtension {
@@ -25,8 +25,10 @@ impl zed::Extension for KotlinExtension {
     fn language_server_command(
         &mut self,
         language_server_id: &LanguageServerId,
-        _: &zed::Worktree,
+        worktree: &zed::Worktree,
     ) -> zed::Result<zed::Command> {
+        let proxy_settings = read_proxy_settings(worktree);
+
         match language_server_id.as_ref() {
             KotlinLanguageServer::LANGUAGE_SERVER_ID => {
                 let kotlin_language_server = self
@@ -40,6 +42,7 @@ impl zed::Extension for KotlinExtension {
                     language_server_id.as_ref(),
                     binary_path,
                     vec![],
+                    &proxy_settings,
                 ))
             }
             KotlinLSP::LANGUAGE_SERVER_ID => {
@@ -50,6 +53,7 @@ impl zed::Extension for KotlinExtension {
                     language_server_id.as_ref(),
                     binary_path,
                     vec!["--stdio".to_string()],
+                    &proxy_settings,
                 ))
             }
             _ => Err(format!(
@@ -63,10 +67,13 @@ impl zed::Extension for KotlinExtension {
         language_server_id: &LanguageServerId,
         worktree: &zed_extension_api::Worktree,
     ) -> Result<Option<serde_json::Value>> {
-        let settings = LspSettings::for_worktree(language_server_id.as_ref(), worktree)
+        let mut settings = LspSettings::for_worktree(language_server_id.as_ref(), worktree)
             .ok()
             .and_then(|lsp_settings| lsp_settings.settings.clone())
-            .unwrap_or_default();
+            .unwrap_or_else(|| Value::Object(Default::default()));
+
+        // Do not forward extension-only keys to the language server.
+        SourceProxySettings::strip_from(&mut settings);
 
         Ok(Some(serde_json::json!({
             "kotlin": settings
@@ -74,19 +81,32 @@ impl zed::Extension for KotlinExtension {
     }
 }
 
-/// Prefer:
-///   kotlin-lsp-proxy <absolute-real-ls> [ls-args...]
-/// so jar!/zip! definition URIs can be rewritten to real files for Zed.
+fn read_proxy_settings(worktree: &zed::Worktree) -> SourceProxySettings {
+    let mut values = Vec::new();
+    for id in [
+        KotlinLanguageServer::LANGUAGE_SERVER_ID,
+        KotlinLSP::LANGUAGE_SERVER_ID,
+    ] {
+        if let Ok(lsp) = LspSettings::for_worktree(id, worktree) {
+            if let Some(settings) = lsp.settings {
+                values.push(settings);
+            }
+        }
+    }
+    merge_proxy_settings(&values)
+}
+
+/// Prefer `kotlin-lsp-proxy <absolute-real-ls> [ls-args...]` when available.
 ///
-/// Fail-open: if the proxy is disabled or missing, launch the real LS directly.
+/// Fail-open: disabled settings, missing binary, or download failure → launch LS directly.
 fn wrap_with_proxy(
     language_server_id: &LanguageServerId,
     server_name: &str,
     binary_path: String,
     ls_args: Vec<String>,
+    proxy_settings: &SourceProxySettings,
 ) -> zed::Command {
-    if proxy_disabled() {
-        println!("kotlin-ext: proxy disabled — direct {server_name}");
+    if proxy_disabled() || !proxy_settings.enabled {
         return zed::Command {
             command: binary_path,
             args: ls_args,
@@ -96,14 +116,18 @@ fn wrap_with_proxy(
 
     if let Some(proxy) = find_or_install_proxy(language_server_id) {
         let abs_ls = absolutize_in_work_dir(&binary_path);
-        println!("kotlin-ext: wrap {server_name} via {proxy} -> {abs_ls}");
         let mut args = Vec::with_capacity(1 + ls_args.len());
         args.push(abs_ls);
         args.extend(ls_args);
 
         let mut env = Vec::new();
-        if proxy_debug_enabled() {
+        if proxy_settings.debug {
             env.push(("KOTLIN_LSP_PROXY_DEBUG".into(), "1".into()));
+        }
+
+        // Quiet by default — only log when debug is on.
+        if proxy_settings.debug {
+            println!("kotlin-ext: wrap {server_name} via proxy");
         }
 
         zed::Command {
@@ -112,7 +136,6 @@ fn wrap_with_proxy(
             env,
         }
     } else {
-        println!("kotlin-ext: no proxy — direct {server_name} path={binary_path}");
         zed::Command {
             command: binary_path,
             args: ls_args,

@@ -80,12 +80,6 @@ pub fn proxy_disabled() -> bool {
         .unwrap_or(false)
 }
 
-pub fn proxy_debug_enabled() -> bool {
-    env::var("KOTLIN_LSP_PROXY_DEBUG")
-        .map(|v| matches!(v.as_str(), "1" | "true" | "TRUE" | "yes"))
-        .unwrap_or(false)
-}
-
 fn path_is_file(path: &Path) -> bool {
     fs::metadata(path).is_ok_and(|m| m.is_file())
 }
