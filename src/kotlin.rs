@@ -24,7 +24,7 @@ impl zed::Extension for KotlinExtension {
     fn language_server_command(
         &mut self,
         language_server_id: &LanguageServerId,
-        _: &zed::Worktree,
+        worktree: &zed::Worktree,
     ) -> zed::Result<zed::Command> {
         match language_server_id.as_ref() {
             KotlinLanguageServer::LANGUAGE_SERVER_ID => {
@@ -49,8 +49,12 @@ impl zed::Extension for KotlinExtension {
                 // library/JDK sources works (zed-extensions/kotlin#106). If the proxy can't
                 // be obtained, fall back to launching kotlin-lsp directly so core language
                 // features keep working (only library source navigation is affected).
+                let configuration = LspSettings::for_worktree(language_server_id.as_ref(), worktree)
+                    .ok()
+                    .and_then(|lsp_settings| lsp_settings.settings);
+
                 let proxy = self.proxy.get_or_insert_with(Proxy::new);
-                match proxy.language_server_binary_path(language_server_id) {
+                match proxy.language_server_binary_path(language_server_id, &configuration, worktree) {
                     Ok(proxy_path) => {
                         // `binary_path` is relative to the extension's work directory.
                         // Zed resolves a relative `command` against that directory
