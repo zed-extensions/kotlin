@@ -91,7 +91,9 @@ fn download_from_teamcity(version: String) -> Result<String> {
         zed::Os::Linux => format!("kotlin-server-{version}{arch_suffix}.tar.gz"),
     };
 
-    let url = format!("https://download-cdn.jetbrains.com/kotlin-lsp/{version}/{asset_name}");
+    let url = format!(
+        "https://download-cdn.jetbrains.com/language-server/kotlin-server/{version}/{asset_name}"
+    );
 
     let extension_dir = format!(
         "{server_id}-{version}",
