@@ -70,12 +70,12 @@ fn get_version() -> Result<String> {
 fn download_from_teamcity(version: String) -> Result<String> {
     let (os, arch) = zed_extension_api::current_platform();
 
-    // WIN https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0.win.zip
-    // WIN ARM  https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0-win-aarch64.zip
-    // LINUX https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0.tar.gz
-    // LINUX ARM https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0-aarch64.tar.gz
-    // MAC https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0.sit
-    // MAC ARM https://download-cdn.jetbrains.com/kotlin-lsp/262.4739.0/kotlin-server-262.4739.0-aarch64.sit
+    // WIN https://download-cdn.jetbrains.com/language-server/kotlin-server/262.9593.0/kotlin-server-262.9593.0.win.zip
+    // WIN ARM https://download-cdn.jetbrains.com/language-server/kotlin-server/262.9593.0/kotlin-server-262.9593.0-aarch64.win.zip
+    // LINUX https://download-cdn.jetbrains.com/language-server/kotlin-server/262.9593.0/kotlin-server-262.9593.0.tar.gz
+    // LINUX ARM https://download-cdn.jetbrains.com/language-server/kotlin-server/262.9593.0/kotlin-server-262.9593.0-aarch64.tar.gz
+    // MAC https://download-cdn.jetbrains.com/language-server/kotlin-server/262.9593.0/kotlin-server-262.9593.0.sit
+    // MAC ARM https://download-cdn.jetbrains.com/language-server/kotlin-server/262.9593.0/kotlin-server-262.9593.0-aarch64.sit
 
     let arch_suffix = match arch {
         zed::Architecture::X8664 => "",
@@ -91,7 +91,12 @@ fn download_from_teamcity(version: String) -> Result<String> {
         zed::Os::Linux => format!("kotlin-server-{version}{arch_suffix}.tar.gz"),
     };
 
-    let url = format!("https://download-cdn.jetbrains.com/kotlin-lsp/{version}/{asset_name}");
+    // JetBrains moved this in June 2026. Builds from 262.8190.0 onwards live under
+    // `language-server/kotlin-server/` and 404 on the old `kotlin-lsp/` path, which is where
+    // `RELEASES.md` has been pointing ever since.
+    let url = format!(
+        "https://download-cdn.jetbrains.com/language-server/kotlin-server/{version}/{asset_name}"
+    );
 
     let extension_dir = format!(
         "{server_id}-{version}",
