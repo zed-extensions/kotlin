@@ -122,6 +122,11 @@
   (shebang_line)
 ] @comment
 
+; KDoc. The grammar has no doc-comment node, unlike tree-sitter-rust, so the opening
+; delimiter is what tells the two apart.
+((multiline_comment) @comment.doc
+  (#match? @comment.doc "^/\\*\\*"))
+
 (real_literal) @float
 
 [
