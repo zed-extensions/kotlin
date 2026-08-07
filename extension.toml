@@ -16,4 +16,4 @@ language = "Kotlin"
 
 [grammars.kotlin]
 repository = "https://github.com/fwcd/tree-sitter-kotlin"
-commit = "4e909d6cc9ac96b4eaecb3fb538eaca48e9e9ee9"
+commit = "1852ea17b7f60fb3f9d84e0b1555d56b46b39fb1"
