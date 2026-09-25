@@ -2,6 +2,7 @@ name = "Kotlin"
 grammar = "kotlin"
 path_suffixes = ["kt", "kts"]
 line_comments = ["// "]
+autoclose_before = ";:.,=}])>"
 brackets = [
     { start = "(", end = ")", close = true, newline = true },
     { start = "[", end = "]", close = true, newline = true },
