@@ -67,7 +67,7 @@ impl KotlinLSP {
 // Hardcode the latest known working build until they update it.
 // See: https://github.com/Kotlin/kotlin-lsp/issues/271
 fn get_version() -> Result<String> {
-    Ok("263.4421.0".to_string())
+    Ok("263.6379.0".to_string())
 }
 
 /// Downloads the server archive for the given `version` from JetBrains and
