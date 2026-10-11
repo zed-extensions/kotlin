@@ -5,7 +5,9 @@
 
 use std::fs;
 
-use zed_extension_api::{self as zed, Result, make_file_executable};
+use zed_extension_api::{
+    self as zed, GithubReleaseOptions, Result, latest_github_release, make_file_executable,
+};
 
 use crate::utils;
 
@@ -55,7 +57,7 @@ impl KotlinLSP {
             &zed::LanguageServerInstallationStatus::Downloading,
         );
 
-        let binary_path = download_from_teamcity(version)?;
+        let binary_path = download_server(version)?;
 
         self.cached_binary_path = Some(binary_path.clone());
         Ok(binary_path)
@@ -63,11 +65,29 @@ impl KotlinLSP {
 }
 
 /// Returns the Kotlin LSP build version to download.
-// JetBrains' RELEASES.md is stale (still points to expired 262.x builds).
-// Hardcode the latest known working build until they update it.
+///
+/// Fetches the latest release tag from the `Kotlin/kotlin-lsp` GitHub
+/// repository.
+// JetBrains' RELEASES.md is stale (still points to expired 262.x builds),
+// so we use the GitHub releases API as the source of truth.
 // See: https://github.com/Kotlin/kotlin-lsp/issues/271
 fn get_version() -> Result<String> {
-    Ok("263.6379.0".to_string())
+    let release = latest_github_release(
+        "Kotlin/kotlin-lsp",
+        GithubReleaseOptions {
+            require_assets: false,
+            pre_release: false,
+        },
+    )
+    .map_err(|e| format!("failed to fetch latest kotlin-lsp release: {e}"))?;
+
+    let version = release
+        .version
+        .strip_prefix("kotlin-lsp/v")
+        .unwrap_or(&release.version)
+        .to_string();
+
+    Ok(version)
 }
 
 /// Downloads the server archive for the given `version` from JetBrains and
@@ -82,15 +102,8 @@ fn get_version() -> Result<String> {
 ///
 /// Returns an error on 32-bit x86 platforms, if the download fails, or if the
 /// extracted archive does not contain the expected server binary.
-fn download_from_teamcity(version: String) -> Result<String> {
+fn download_server(version: String) -> Result<String> {
     let (os, arch) = zed_extension_api::current_platform();
-
-    // WIN https://download-cdn.jetbrains.com/language-server/kotlin-server/262.9593.0/kotlin-server-262.9593.0.win.zip
-    // WIN ARM https://download-cdn.jetbrains.com/language-server/kotlin-server/262.9593.0/kotlin-server-262.9593.0-aarch64.win.zip
-    // LINUX https://download-cdn.jetbrains.com/language-server/kotlin-server/262.9593.0/kotlin-server-262.9593.0.tar.gz
-    // LINUX ARM https://download-cdn.jetbrains.com/language-server/kotlin-server/262.9593.0/kotlin-server-262.9593.0-aarch64.tar.gz
-    // MAC https://download-cdn.jetbrains.com/language-server/kotlin-server/262.9593.0/kotlin-server-262.9593.0.sit
-    // MAC ARM https://download-cdn.jetbrains.com/language-server/kotlin-server/262.9593.0/kotlin-server-262.9593.0-aarch64.sit
 
     let arch_suffix = match arch {
         zed::Architecture::X8664 => "",
@@ -106,7 +119,6 @@ fn download_from_teamcity(version: String) -> Result<String> {
         zed::Os::Linux => format!("kotlin-server-{version}{arch_suffix}.tar.gz"),
     };
 
-    // JetBrains moved to download.jetbrains.com for newer builds (263.x+)
     let url = format!(
         "https://download.jetbrains.com/language-server/kotlin-server/{version}/{asset_name}"
     );
@@ -136,7 +148,6 @@ fn download_from_teamcity(version: String) -> Result<String> {
         }
 
         let downloaded_file_type = match os {
-            // We don't ask questions as to why `sit` == `zip`. Let JetBrains keep their secrets there
             zed::Os::Windows | zed::Os::Mac => zed_extension_api::DownloadedFileType::Zip,
             zed::Os::Linux => zed_extension_api::DownloadedFileType::GzipTar,
         };
