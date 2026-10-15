@@ -1,5 +1,6 @@
 use std::fs;
 
+use url::Url;
 use zed_extension_api::{self as zed, make_file_executable, Result};
 
 use crate::language_servers::util;
@@ -77,12 +78,24 @@ fn extract_release_from_markdown(contents: &str) -> Option<Release> {
         .flat_map(|line| line.split("](").skip(1))
         .find_map(|link| {
             let (url, _) = link.split_once(')')?;
+            if !is_jetbrains_url(url) {
+                return None;
+            }
             // Keep everything up to the version, dropping its trailing slash.
             url.find(&version_segment)
                 .map(|index| url[..index + version_segment.len() - 1].to_owned())
         });
 
     Some(Release { version, base_url })
+}
+
+fn is_jetbrains_url(url: &str) -> bool {
+    Url::parse(url).is_ok_and(|url| {
+        url.scheme() == "https"
+            && url.domain().is_some_and(|domain| {
+                domain == "jetbrains.com" || domain.ends_with(".jetbrains.com")
+            })
+    })
 }
 
 fn get_release() -> Result<Release> {
@@ -194,6 +207,12 @@ mod tests {
                         .into()
                 ),
             })
+        );
+
+        let foreign = "### v1.0\n* [x](https://jetbrains.com.evil.com/1.0/kotlin-server-1.0.sit)";
+        assert_eq!(
+            extract_release_from_markdown(foreign).unwrap().base_url,
+            None
         );
     }
 }
