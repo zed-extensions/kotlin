@@ -209,7 +209,10 @@ mod tests {
             })
         );
 
-        let foreign = "### v1.0\n* [x](https://jetbrains.com.evil.com/1.0/kotlin-server-1.0.sit)";
+        let foreign = indoc! {r#"
+                ### v1.0
+                * [x](https://jetbrains.com.evil.com/1.0/kotlin-server-1.0.sit)
+            "#};
         assert_eq!(
             extract_release_from_markdown(foreign).unwrap().base_url,
             None
