@@ -1,6 +1,6 @@
 use std::fs;
 
-use zed_extension_api::{self as zed, make_file_executable, Result, Worktree};
+use zed_extension_api::{self as zed, make_file_executable, Result};
 
 use crate::language_servers::util;
 
