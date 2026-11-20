@@ -1,6 +1,6 @@
 use std::fs;
 
-use zed_extension_api::{self as zed, make_file_executable, Result};
+use zed_extension_api::{self as zed, make_file_executable, Result, Worktree};
 
 use crate::language_servers::util;
 
@@ -20,9 +20,13 @@ impl KotlinLSP {
     pub fn language_server_binary_path(
         &mut self,
         language_server_id: &zed::LanguageServerId,
+        worktree: &zed::Worktree,
     ) -> Result<String> {
-        if let Some(path) = self.cached_binary_path.as_ref() {
-            return Ok(path.clone());
+        if let Some(path) = worktree
+            .which("kotlin-lsp")
+            .or_else(|| self.cached_binary_path.clone())
+        {
+            return Ok(path);
         }
 
         zed::set_language_server_installation_status(
