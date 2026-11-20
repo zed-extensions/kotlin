@@ -751,7 +751,7 @@ dependencies = [
 
 [[package]]
 name = "zed_kotlin"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "zed_extension_api",
 ]
